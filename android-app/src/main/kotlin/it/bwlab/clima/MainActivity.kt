@@ -1,29 +1,32 @@
 package it.bwlab.clima
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.foundation.layout.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModelProvider
+import it.bwlab.clima.data.ThemePreferences
+import it.bwlab.clima.navigation.ClimaNavHost
+import it.bwlab.clima.ui.theme.ClimaTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val viewModel = ViewModelProvider(
             this,
             ViewModelProvider.AndroidViewModelFactory(application)
-        )[ClimateViewModel::class.java]
+        )[AppViewModel::class.java]
         setContent {
-            MaterialTheme {
+            ClimaTheme(theme = ThemePreferences.currentTheme.collectAsState().value) {
                 Surface(
-                    color = MaterialTheme.colors.background,
+                    color = MaterialTheme.colorScheme.background,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    ClimateScreen(viewModel = viewModel, currentIp = "192.168.1.100")
+                    ClimaNavHost(viewModel = viewModel)
                 }
             }
         }

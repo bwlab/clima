@@ -317,7 +317,17 @@ class GreeClient(
         val tur = get("Tur") ?: 0
         val svSt = get("SvSt") ?: 0
 
-        return ClimateState(pow, mode, setTem, temUn, wdSpd, temSen, lig, swUpDn, quiet, tur, svSt)
+        return ClimateState(
+            pow, mode, setTem, temUn, wdSpd, temSen, lig, swUpDn, quiet, tur, svSt,
+            swingLfRig = get("SwingLfRig") ?: 0,
+            health = get("Health") ?: 0,
+            air = get("Air") ?: 0,
+            swhSlp = get("SwhSlp") ?: 0,
+            slpMod = get("SlpMod") ?: 0,
+            blo = get("Blo") ?: 0,
+            temRec = get("TemRec") ?: 0,
+            supported = cols.toSet()
+        )
     }
 }
 
