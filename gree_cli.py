@@ -5,7 +5,7 @@ da shell (usa il motore di gree_test.py: bind automatico, chiavi salvate).
 
 Uso:
     python gree_cli.py                # menu: chiede/scansiona, scegli il clima
-    python gree_cli.py 192.168.1.100   # parte direttamente su quell'IP
+    python gree_cli.py 192.168.0.50   # parte direttamente su quell'IP
 
 Funzioni nel menu:
   stato, on/off, temperatura, modalita', ventola, swing, luci display,

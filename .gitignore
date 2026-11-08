@@ -13,3 +13,15 @@ __pycache__/
 
 # Scratch
 path/
+
+# Secrets / local device state — never publish
+gree_wifi.json
+gree_keys.json
+gree_cli_last.json
+**/gree_keys.json
+local.properties
+*.keystore
+*.jks
+
+# Local agent / scratch screenshots with device serials optional
+# (mockups in clima-redesign/mockup are fine)

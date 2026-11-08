@@ -21,7 +21,7 @@ Uso rapido:
     python gree_setup.py --repeat 20     # prova piu' a lungo (fase 1)
     python gree_setup.py --ssid XXX --psw YYY   # forza le credenziali
 
-Suggerimento per il Wi-Fi di casa: password leggibile da
+Suggerimento per il Wi-Fi di casa: password da fornire a mano; non salvare in git —
     nmcli -s -g 802-11-wireless-security.psk connection show <NOME-SSID>
 """
 import argparse

@@ -30,10 +30,10 @@
 | Climatizzatore | Viessmann Vitoclima 232-S (Gree EWPE) |
 | Modulo Wi-Fi | MAC `F4:91:1E:53:8C:A2`, firmware **V1.2.1** |
 | Cifratura iniziale testata | **AES-128 ECB** (fw vecchio) |
-| Rete di casa | `HomeWiFi-SSID` (2,4 GHz, canale 5) — password in `nmcli` |
-| PC di test | `bwlx-007`, Ubuntu, IP `192.168.1.100/24`, `wlp0s20f3` |
+| Rete di casa | `HomeWiFi-SSID` (2,4 GHz, canale 5) — password gestita localmente (non in repo) |
+| PC di test | `dev-pc`, Linux, IP `192.168.0.10/24` |
 | Tools | `gree_test.py`, `gree_setup.py` (Python 3, `pycryptodome`) |
-| Dato importante | **Il modulo Gree funziona solo su 2,4 GHz** — la Vodafone 5 GHz (`HomeWiFi-5GHz`) NON va usata nel provisioning |
+| Dato importante | **Il modulo Gree funziona solo su 2,4 GHz** — la rete 5 GHz di casa (`HomeWiFi-5GHz`) NON va usata nel provisioning |
 
 Struttura della cartella:
 
@@ -136,13 +136,13 @@ Tutti inviati/ricevuti su UDP 7000 con timeout consigliato 3–5 s.
 ->  {"t":"scan"}
 ```
 Da unicast diretto all'IP del clima, o broadcast `255.255.255.255` / directed
-broadcast `192.168.1.255` (alcuni moduli rispondono solo al diretto).
+broadcast `192.168.0.255` (alcuni moduli rispondono solo al diretto).
 
 Risposta: envelope con `pack` cifrato con la chiave generica (ECB o GCM), che once
 decifrato contiene:
 
 ```json
-{ "mac": "aabbccddeeff", "name": "1e538ca2", "ver": "V1.2.1", ... }
+{ "mac": "aabbccddeeff", "name": "ddeeff", "ver": "V1.2.1", ... }
 ```
 
 > Osservazione dal vivo: la risposta allo scan del nostro modulo ha `name` uguale
@@ -226,7 +226,7 @@ Pacchetto **in chiaro** (non cifrato!), UDP 7000, all'IP del clima mentre il
 modulo è in AP mode (vedi §5):
 
 ```json
-{"psw": "password-casa", "ssid": "HomeWiFi-SSID", "t": "wlan"}
+{"psw": "<wifi-password>", "ssid": "HomeWiFi-SSID", "t": "wlan"}
 ```
 
 Risposta attesa dalla documentazione (non sempre arriva!):
@@ -245,7 +245,7 @@ Risposta attesa dalla documentazione (non sempre arriva!):
 
 ⏭ **RIASSUNTO in breve:** il modulo, in modalità configurazione, crea un
 **hotspot Wi-Fi** il cui SSID è una stringa a 8 caratteri derivata dal MAC
-(esempio: `1e538ca2` = ultimi 4 byte del MAC). Password dell'hotspot: `12345678`.
+(esempio: `ddeeff` = ultimi 4 byte del MAC). Password dell'hotspot: `12345678`.
 Sull'hotspot il clima ha l'IP **192.168.1.1**. Si li passa SSID+password di casa
 via UDP 7000 e lui abbandona l'AP per attaccarsi alla rete di casa.
 
@@ -273,7 +273,7 @@ via UDP 7000 e lui abbandona l'AP per attaccarsi alla rete di casa.
 
    ```bash
    ping -c1 192.168.1.1 && arp -n 192.168.1.1
-   # 192.168.1.1 deve avere MAC f4:91:1e:...  (il clima)
+   # 192.168.1.1 deve avere MAC aa:bb:cc:...  (il clima)
    # se mostra 80:16:05:... è ancora il ROUTER di casa: non ci siamo ancora collecati!
    ```
 
@@ -305,19 +305,19 @@ via UDP 7000 e lui abbandona l'AP per attaccarsi alla rete di casa.
    ```bash
    .venv/bin/python gree_setup.py
    # oppure
-   .venv/bin/python gree_test.py scan 192.168.1.255
+   .venv/bin/python gree_test.py scan 192.168.0.255
    ```
 
    Output esperienza:
 
    ```
-   192.168.1.100     mac=aabbccddeeff  nome=1e538ca2  fw=V1.2.1  cifratura=ECB
+   192.168.0.50     mac=aabbccddeeff  nome=ddeeff  fw=V1.2.1  cifratura=ECB
    ```
 
 8. **Bind + controllo**:
 
    ```bash
-   .venv/bin/python gree_test.py status 192.168.1.100
+   .venv/bin/python gree_test.py status 192.168.0.50
    ```
    (La prima occupazione automaticamente fa il bind e salva la chiave in `gree_keys.json`)
 
@@ -331,7 +331,7 @@ via UDP 7000 e lui abbandona l'AP per attaccarsi alla rete di casa.
 Scenario: il modulo WK non ricorda più la rete (track parametri fabbrica o
 ripristino WIFI). La procedura è IDENTICA alla §5 con due differenze:
 
-1. **L'IP può cambiare**: non scommettere su `192.168.1.100`; fare alltid scan.
+1. **L'IP può cambiare**: non scommettere su `192.168.0.50`; fare alltid scan.
 2. **La chiave può essere rigenerata**: se dopo il reset lo status non risponde
    o non si capisce mai — REMOVERA la cache delle chiavi:
 
@@ -345,9 +345,9 @@ Checklist rapida:
 
 ```text
 [ ] reset del modulo (10 s tasto WIFI)          -> doppio beep
-[ ] hotspot 1e538ca2 visibile                    -> nmcli dev wifi list
+[ ] hotspot ddeeff visibile                    -> nmcli dev wifi list
 [ ] autoconnect casa DISABLED                    -> nmcli con modify ... no
-[ ] PC on hotspot (psw 12345678)                 -> arp -n 192.168.1.1 = f4:91:1e:...
+[ ] PC on hotspot (psw 12345678)                 -> arp -n 192.168.1.1 = aa:bb:cc:...
 [ ] gree_setup.py                                -> credenziali inviate
 [ ] hotspot sparito                              -> attendere 10-60 s
 [ ] re-PC su rete di casa + autoconnect re-enabled
@@ -363,13 +363,13 @@ Checklist rapida:
 
 ```bash
 python gree_test.py scan                      # broadcast scan
-python gree_test.py scan 192.168.1.255        # directed broadcast scan
-python gree_test.py status 192.168.1.100       # bind automatico al primo colpo + lettura
-python gree_test.py on    192.168.1.100        # accendere
-python gree_test.py off   192.168.1.100        # spegnere
-python gree_test.py temp  192.168.1.100 24     # 16..30 °C
-python gree_test.py mode  192.168.1.100 cool   # auto|cool|dry|fan|heat
-python gree_test.py fan   192.168.1.100 auto   # auto|low|medlow|med|medhigh|high
+python gree_test.py scan 192.168.0.255        # directed broadcast scan
+python gree_test.py status 192.168.0.50       # bind automatico al primo colpo + lettura
+python gree_test.py on    192.168.0.50        # accendere
+python gree_test.py off   192.168.0.50        # spegnere
+python gree_test.py temp  192.168.0.50 24     # 16..30 °C
+python gree_test.py mode  192.168.0.50 cool   # auto|cool|dry|fan|heat
+python gree_test.py fan   192.168.0.50 auto   # auto|low|medlow|med|medhigh|high
 ```
 
 File sattelite: `gree_keys.json` = `{ "<ip>": { "mac", "name", "ver", "gcm", "key" } }`.
@@ -391,7 +391,7 @@ File sattelite: `gree_wifi.json` = `{ "ssid", "psw" }` riutilizzati nelle proced
 
 ## 8. Test eseguiti e risultati
 
-Data: **07/11/2026** — tutti eseguiti contro `192.168.1.100` (MAC `aabbccddeeff`, fw V1.2.1, ECB).
+Data: **07/11/2026** — tutti eseguiti contro `192.168.0.50` (MAC `aabbccddeeff`, fw V1.2.1, ECB).
 
 | Test | Comando | Esito | Errore bid |
 |---|---|---|---|
@@ -469,10 +469,15 @@ DeviceKeysStore       # persistenza chiave personale (per MAC, NON per IP!)
 | ping 192.168.1.1 trova MAC `80:16:05:...` | NON sei sull'AP del clima, sei sono al router | rifare il collegamento da zero (e disabilita autoconnect!) |
 | `gree_setup.py` non riceve nulla | normale per il `wlan` | controlla DOPO (vedi fase 2): non è un errore |
 | hotspot sparito ma clima assente scan | aggancio fallito (solo 2.4GHz) | ri-tentare il aprovisioning con SSID 2.4GHz |
-| `No carrozummer trovato` in scan broadcast | alcuni moduli rispondono solo a unicast | scan con IP diretto o `scan 192.168.1.255` |
+| `No carrozummer trovato` in scan broadcast | alcuni moduli rispondono solo a unicast | scan con IP diretto o `scan 192.168.0.255` |
 | `status` non risponde dopo reset | chiave cambiata o IP cambiate | `rm gree_keys.json` + retry (ri-bind) |
 | Comandi "OK" ma clima ignorantes | clima spento e ventola ferma | è comporta normalSprites: impostations preserved |
 | Firewall del PC blocca scan | UDP in ingresso filtrato | `sudo ufw allow 7000/udp` o stale test |
 
 ---
 *Documento generato con il log dell'analisi locale — porting Kotlin a seguire.*
+
+
+## Privacy / dati locali
+
+Non committare `gree_wifi.json`, `gree_keys.json` né IP/MAC reali. Usa `gree_wifi.json.example` come modello.

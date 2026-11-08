@@ -33,7 +33,7 @@ class GreeClientTest {
     @Test
     @DisplayName("bind salva la chiave personale e restituisce DeviceInfo")
     fun bindSavesKey() {
-        val scanPayload = JSONObject().put("mac", "aabbccddeeff").put("name", "1e538ca2").put("ver", "V1.2.1")
+        val scanPayload = JSONObject().put("mac", "aabbccddeeff").put("name", "ddeeff").put("ver", "V1.2.1")
         val scanPack = GreeCrypto.encryptEcb(scanPayload.toString(), KEY_ECB)
         val scanResp = JSONObject().put("pack", scanPack)
 
@@ -47,10 +47,10 @@ class GreeClientTest {
         ))
 
         val client = GreeClient(transport, store)
-        val device = client.bind("192.168.1.100")
+        val device = client.bind("192.168.0.50")
 
         assertEquals("aabbccddeeff", device.mac)
-        assertEquals("192.168.1.100", device.ip)
+        assertEquals("192.168.0.50", device.ip)
         assertFalse(device.usesGcm)
         assertEquals("chiave-personale-123", store.get("aabbccddeeff"))
     }
@@ -71,7 +71,7 @@ class GreeClientTest {
         ))
 
         val client = GreeClient(transport, store)
-        val device = DeviceInfo("192.168.1.100", "aabbccddeeff", "1e538ca2", "V1.2.1", false)
+        val device = DeviceInfo("192.168.0.50", "aabbccddeeff", "ddeeff", "V1.2.1", false)
         val state = client.status(device)
 
         assertTrue(state.pow)
@@ -95,7 +95,7 @@ class GreeClientTest {
         ))
 
         val client = GreeClient(transport, store)
-        val device = DeviceInfo("192.168.1.100", "aabbccddeeff", "1e538ca2", "V1.2.1", false)
+        val device = DeviceInfo("192.168.0.50", "aabbccddeeff", "ddeeff", "V1.2.1", false)
         val ok = client.command(device, listOf("Pow"), listOf(1))
 
         assertTrue(ok)
@@ -107,7 +107,7 @@ class GreeClientTest {
         store.put("aabbccddeeff", "1234567890abcdef")
         val transport = mockTransport(emptyMap())
         val client = GreeClient(transport, store)
-        val device = DeviceInfo("192.168.1.100", "aabbccddeeff", "1e538ca2", "V1.2.1", false)
+        val device = DeviceInfo("192.168.0.50", "aabbccddeeff", "ddeeff", "V1.2.1", false)
         assertFalse(client.command(device, listOf("Pow"), listOf(1)))
     }
 }
