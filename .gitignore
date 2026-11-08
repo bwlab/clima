@@ -1,0 +1,15 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+.android/
+
+# Python utilities used for protocol exploration
+__pycache__/
+
+# Scratch
+path/
