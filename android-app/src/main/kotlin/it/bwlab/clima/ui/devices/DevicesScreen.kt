@@ -93,6 +93,7 @@ fun DevicesScreen(
     var manualIp by remember { mutableStateOf("") }
     var manualError by remember { mutableStateOf(false) }
     var manualPendingIp by remember { mutableStateOf<String?>(null) }
+    var pendingFound by remember { mutableStateOf<DeviceInfo?>(null) }
 
     LaunchedEffect(saved.isEmpty()) {
         if (saved.isEmpty()) app.scan()
@@ -199,7 +200,7 @@ fun DevicesScreen(
                                 found.forEachIndexed { index, info ->
                                     FoundRow(
                                         info = info,
-                                        onAdd = { app.addDevice(info) {} }
+                                        onAdd = { pendingFound = info }
                                     )
                                     if (index < found.size - 1) {
                                         Box(
@@ -404,7 +405,7 @@ fun DevicesScreen(
         )
     }
 
-    // Inserimento manuale: nome opzionale prima di bind + salvataggio
+    // Inserimento manuale: nome prima di bind + salvataggio
     manualPendingIp?.let { ip ->
         RenameDialog(
             initial = "",
@@ -412,6 +413,20 @@ fun DevicesScreen(
             onConfirm = { name ->
                 app.addDeviceByIp(ip, name, onDone = { id ->
                     manualPendingIp = null
+                    onOpen(id)
+                })
+            }
+        )
+    }
+
+    // Trovato in rete: chiedi un nome umano prima di salvare
+    pendingFound?.let { info ->
+        RenameDialog(
+            initial = "",
+            onDismiss = { pendingFound = null },
+            onConfirm = { name ->
+                app.addDevice(info, name, onDone = { id ->
+                    pendingFound = null
                     onOpen(id)
                 })
             }

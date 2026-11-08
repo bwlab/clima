@@ -83,6 +83,14 @@ fun ControlScreen(
     val collapsed by remember { derivedStateOf { listState.firstVisibleItemIndex >= 1 } }
 
     var showRename by remember { mutableStateOf(false) }
+    // Se il nome è ancora quello tecnico (MAC), invita subito a scegliere un nome umano.
+    LaunchedEffect(ui.device.id, ui.device.name) {
+        val n = ui.device.name.trim()
+        val technical = n.isEmpty() ||
+            n.matches(Regex("(?i)^gree\\s*[0-9a-f:-]{4,}$")) ||
+            n.matches(Regex("(?i)^[0-9a-f]{6,}$"))
+        if (technical) showRename = true
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,

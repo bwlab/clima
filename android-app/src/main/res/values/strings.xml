@@ -46,14 +46,32 @@
 
     <!-- Flusso d\'aria -->
     <string name="section_airflow">Air flow</string>
-    <string name="airflow_vertical">Vertical louvres</string>
-    <string name="airflow_horizontal">Horizontal louvres</string>
-    <string name="airflow_cd_vertical">Change the vertical direction of the air flow</string>
-    <string name="airflow_cd_horizontal">Change the horizontal direction of the air flow</string>
-    <string name="louvre_fixed">Fixed (current position)</string>
-    <string name="louvre_swing_full">Full oscillation</string>
+    <string name="airflow_vertical">Up / down flaps</string>
+    <string name="airflow_horizontal">Left / right flaps</string>
+    <string name="airflow_cd_vertical">Change the up/down air direction</string>
+    <string name="airflow_cd_horizontal">Change the left/right air direction</string>
+    <string name="louvre_fixed">Hold still (current angle)</string>
+    <string name="louvre_swing_full">Swing continuously</string>
     <string name="louvre_position">Position %1$d</string>
-    <string name="louvre_swing_partial">Partial oscillation %1$d</string>
+    <string name="louvre_swing_partial">Partial swing %1$d</string>
+    <!-- Human labels for fixed flap angles (1 = extreme end of travel) -->
+    <string name="louvre_v_pos_1">Aim up</string>
+    <string name="louvre_v_pos_2">Aim slightly up</string>
+    <string name="louvre_v_pos_3">Aim straight</string>
+    <string name="louvre_v_pos_4">Aim slightly down</string>
+    <string name="louvre_v_pos_5">Aim down</string>
+    <string name="louvre_h_pos_1">Aim left</string>
+    <string name="louvre_h_pos_2">Aim slightly left</string>
+    <string name="louvre_h_pos_3">Aim center</string>
+    <string name="louvre_h_pos_4">Aim slightly right</string>
+    <string name="louvre_h_pos_5">Aim right</string>
+    <string name="louvre_v_swing_1">Swing in the upper area</string>
+    <string name="louvre_v_swing_2">Swing mid-upper</string>
+    <string name="louvre_v_swing_3">Swing in the middle</string>
+    <string name="louvre_v_swing_4">Swing mid-lower</string>
+    <string name="louvre_v_swing_5">Swing in the lower area</string>
+    <string name="device_rename_hint">Choose a name you recognize, e.g. Living room</string>
+    <string name="cd_rename">Rename air conditioner</string>
 
     <!-- Timer -->
     <string name="section_timer">Timer</string>

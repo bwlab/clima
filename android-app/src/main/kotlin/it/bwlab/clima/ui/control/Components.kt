@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Refresh
@@ -74,6 +75,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -143,16 +145,29 @@ fun ControlTopBar(
             }
         },
         title = {
-            // Tap sul nome = rinomina
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            // Tap sul nome o sulla matita = rinomina
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onTitleClick)
-            )
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = stringResource(R.string.cd_rename),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(20.dp)
+                )
+            }
         },
         actions = {
             IconButton(onClick = onDevices) {
@@ -439,11 +454,12 @@ fun TemperatureDial(
             .fillMaxWidth()
             .alpha(dim)
     ) {
+        // aspectRatio > 1 → meno alto del largo (evita il “cerchio ovale” a tutto schermo)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
+                .fillMaxWidth(0.92f)
+                .aspectRatio(1.22f)
         ) {
             // Pulsanti − / + ai lati del quadrante (mockup 01)
             IconButton(
@@ -451,8 +467,8 @@ fun TemperatureDial(
                 enabled = controlsEnabled,
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 4.dp)
-                    .size(48.dp)
+                    .padding(start = 2.dp)
+                    .size(44.dp)
                     .background(Color.White.copy(alpha = 0.18f), CircleShape)
             ) {
                 Icon(
@@ -466,8 +482,8 @@ fun TemperatureDial(
                 enabled = controlsEnabled,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp)
-                    .size(48.dp)
+                    .padding(end = 2.dp)
+                    .size(44.dp)
                     .background(Color.White.copy(alpha = 0.18f), CircleShape)
             ) {
                 Icon(
@@ -481,7 +497,7 @@ fun TemperatureDial(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 52.dp)
+                    .padding(horizontal = 48.dp)
                     .pointerInput(controlsEnabled) {
                         if (controlsEnabled) {
                             detectDragGestures { change, _ ->
@@ -510,10 +526,18 @@ fun TemperatureDial(
                     }
             ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = 26.dp.toPx()
+                val stroke = 22.dp.toPx()
+                val diameter = size.minDimension
+                val topLeft = Offset(
+                    (size.width - diameter) / 2f,
+                    (size.height - diameter) / 2f
+                )
+                val arcSize = Size(diameter, diameter)
                 val padding = stroke / 2 + 4.dp.toPx()
-                val radius = (size.minDimension - padding * 2) / 2
+                val radius = (diameter - padding * 2) / 2
                 val center = Offset(size.width / 2, size.height / 2)
+                // drawArc usa un ovale = rettangolo di disegno: forziamo un quadrato
+                // per ottenere un arco davvero circolare anche se il Box non è 1:1.
 
                 // arco di fondo
                 drawArc(
@@ -521,6 +545,8 @@ fun TemperatureDial(
                     startAngle = DIAL_START,
                     sweepAngle = DIAL_SWEEP,
                     useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
                     style = Stroke(width = stroke, cap = StrokeCap.Round)
                 )
                 // arco riempito fino alla temperatura
@@ -532,6 +558,8 @@ fun TemperatureDial(
                     startAngle = DIAL_START,
                     sweepAngle = sweep,
                     useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
                     style = Stroke(width = stroke, cap = StrokeCap.Round)
                 )
                 // tacche ogni grado
@@ -540,8 +568,8 @@ fun TemperatureDial(
                     val a = Math.toRadians(
                         (DIAL_START + t * (DIAL_SWEEP / (TEMP_MAX - TEMP_MIN))).toDouble()
                     )
-                    val tickInner = radius - padding - 8.dp.toPx()
-                    val tickOuter = radius - padding - 2.dp.toPx()
+                    val tickInner = radius - 6.dp.toPx()
+                    val tickOuter = radius
                     drawLine(
                         color = Color.White.copy(alpha = 0.35f),
                         start = Offset(
@@ -561,10 +589,10 @@ fun TemperatureDial(
                 )
                 drawCircle(
                     color = Color.White,
-                    radius = 10.dp.toPx(),
+                    radius = 9.dp.toPx(),
                     center = Offset(
-                        center.x + (radius - padding) * cos(a).toFloat(),
-                        center.y + (radius - padding) * sin(a).toFloat()
+                        center.x + radius * cos(a).toFloat(),
+                        center.y + radius * sin(a).toFloat()
                     )
                 )
             }
@@ -999,12 +1027,42 @@ fun AirflowSection(ui: ControlViewModel.UiState, vm: ControlViewModel) {
 @Composable
 private fun louvreLabel(horizontal: Boolean, state: ClimateState?): String {
     val code = if (horizontal) state?.swingLfRig ?: 0 else state?.swUpDn ?: 0
-    return when {
-        code == 1 -> stringResource(R.string.louvre_swing_full)
-        code in 2..6 -> stringResource(R.string.louvre_position, code - 1)
-        !horizontal && code in 7..11 -> stringResource(R.string.louvre_swing_partial, code - 6)
-        else -> stringResource(R.string.louvre_fixed)
-    }
+    return louvreOptionLabel(horizontal, code)
+}
+
+/** Etichette comprensibili per le posizioni delle alette (non “Posizione 3”). */
+@Composable
+private fun louvreOptionLabel(horizontal: Boolean, code: Int): String = when {
+    code == 0 -> stringResource(R.string.louvre_fixed)
+    code == 1 -> stringResource(R.string.louvre_swing_full)
+    !horizontal && code in 2..6 -> stringResource(
+        when (code) {
+            2 -> R.string.louvre_v_pos_1
+            3 -> R.string.louvre_v_pos_2
+            4 -> R.string.louvre_v_pos_3
+            5 -> R.string.louvre_v_pos_4
+            else -> R.string.louvre_v_pos_5
+        }
+    )
+    horizontal && code in 2..6 -> stringResource(
+        when (code) {
+            2 -> R.string.louvre_h_pos_1
+            3 -> R.string.louvre_h_pos_2
+            4 -> R.string.louvre_h_pos_3
+            5 -> R.string.louvre_h_pos_4
+            else -> R.string.louvre_h_pos_5
+        }
+    )
+    !horizontal && code in 7..11 -> stringResource(
+        when (code) {
+            7 -> R.string.louvre_v_swing_1
+            8 -> R.string.louvre_v_swing_2
+            9 -> R.string.louvre_v_swing_3
+            10 -> R.string.louvre_v_swing_4
+            else -> R.string.louvre_v_swing_5
+        }
+    )
+    else -> stringResource(R.string.louvre_fixed)
 }
 
 @Composable
@@ -1073,33 +1131,29 @@ private fun LouvreSheet(
                 style = MaterialTheme.typography.headlineSmall
             )
             Spacer(Modifier.height(10.dp))
-            // Fisse (posizione attuale)
             OptionRow(
-                label = stringResource(R.string.louvre_fixed),
+                label = louvreOptionLabel(horizontal, 0),
                 selected = current == 0,
                 onClick = { onPick(0) }
             )
-            // Oscillazione completa
             OptionRow(
-                label = stringResource(R.string.louvre_swing_full),
+                label = louvreOptionLabel(horizontal, 1),
                 selected = current == 1,
                 onClick = { onPick(1) }
             )
-            // Posizioni fisse 1–5
-            for (pos in 1..5) {
-                val code = pos + 1
+            // Angoli fissi 1–5 (codici protocollo 2–6)
+            for (code in 2..6) {
                 OptionRow(
-                    label = stringResource(R.string.louvre_position, pos),
+                    label = louvreOptionLabel(horizontal, code),
                     selected = current == code,
                     onClick = { onPick(code) }
                 )
             }
-            // oscillazioni parziali (solo alette verticali)
+            // Oscillazioni parziali (solo alette verticali, codici 7–11)
             if (!horizontal) {
-                for (i in 1..5) {
-                    val code = i + 6
+                for (code in 7..11) {
                     OptionRow(
-                        label = stringResource(R.string.louvre_swing_partial, i),
+                        label = louvreOptionLabel(horizontal = false, code),
                         selected = current == code,
                         onClick = { onPick(code) }
                     )

@@ -66,16 +66,29 @@ fun RenameDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.device_rename)) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column {
+                Text(
+                    text = stringResource(R.string.device_rename_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text(stringResource(R.string.device_name)) },
+                    placeholder = { Text(stringResource(R.string.device_rename_hint)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }) { Text(stringResource(R.string.action_save)) }
+            TextButton(
+                onClick = { onConfirm(text) },
+                enabled = text.trim().isNotEmpty()
+            ) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

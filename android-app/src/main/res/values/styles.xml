@@ -9,6 +9,5 @@
         <item name="android:navigationBarColor">#F3F5F9</item>
         <item name="android:windowBackground">#F3F5F9</item>
         <item name="android:colorBackground">#F3F5F9</item>
-        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>
