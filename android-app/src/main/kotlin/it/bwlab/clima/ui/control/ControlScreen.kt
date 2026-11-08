@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +56,7 @@ fun ControlScreen(
     )
     val ui by vm.ui.collectAsState()
     val autoRefresh by app.prefs.autoRefresh.collectAsState(initial = true)
+    val usesF by app.prefs.usesFahrenheit.collectAsState(initial = false)
     val timers by app.timers.collectAsState(emptyList())
     val context = LocalContext.current
 
@@ -78,7 +80,7 @@ fun ControlScreen(
     }
 
     val listState = rememberLazyListState()
-    val collapsed = listState.firstVisibleItemIndex >= 1
+    val collapsed by remember { derivedStateOf { listState.firstVisibleItemIndex >= 1 } }
 
     var showRename by remember { mutableStateOf(false) }
 
@@ -88,6 +90,7 @@ fun ControlScreen(
             if (collapsed) {
                 CompactTopBar(
                     state = ui.state,
+                    usesFahrenheit = usesF,
                     onPower = { vm.power(it) },
                     onBack = onBack,
                     onDevices = onDevices,
@@ -115,8 +118,8 @@ fun ControlScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                item { MainCard(ui = ui, vm = vm) }
                 item { StatusChips(connected = ui.reachable, connecting = ui.connecting, vpn = ui.vpn) }
+                item { MainCard(ui = ui, vm = vm, usesFahrenheit = usesF) }
                 item {
                     ModeGrid(
                         current = ui.state?.mode,

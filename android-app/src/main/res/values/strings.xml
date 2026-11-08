@@ -110,6 +110,7 @@
     <string name="action_scan">Search network</string>
     <string name="scan_running">Searching in network…</string>
     <string name="scan_empty">No unit found</string>
+    <string name="devices_empty">No air conditioner saved yet</string>
     <string name="scan_failed">Network search failed</string>
     <string name="bind_failed">The unit did not accept the connection</string>
     <string name="command_failed">Command not delivered</string>

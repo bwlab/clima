@@ -2,20 +2,22 @@ package it.bwlab.clima.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ---- Palette dal design system del prompt ----
+// ---- Palette dal design system del prompt / mockup ----
 
-// Sfondi e superfici (chiaro)
-val BgLight = Color(0xFFF6F7FB)
-val SurfaceLight = Color(0xFFECEEF4)
-val OutlineLight = Color(0xFFD9DDE7)
+// Sfondi e superfici (chiaro) — gerarchia distinta per contrasto leggibile
+val BgLight = Color(0xFFF3F5F9)
+val SurfaceLight = Color(0xFFFFFFFF)
+val SurfaceVariantLight = Color(0xFFDDE1EA)
+val OutlineLight = Color(0xFFB8BECB)
 val OnSurfaceLight = Color(0xFF14171F)
-val OnSurfaceVariantLight = Color(0xFF5B6375)
+val OnSurfaceVariantLight = Color(0xFF4A5263)
 
 // Sfondi e superfici (scuro)
 val BgDark = Color(0xFF0F1219)
 val SurfaceDark = Color(0xFF191E29)
+val SurfaceVariantDark = Color(0xFF242A38)
 val OutlineDark = Color(0xFF3A4150)
-val OnSurfaceDark = Color(0xFFE8EaF1)
+val OnSurfaceDark = Color(0xFFE8EAF1)
 val OnSurfaceVariantDark = Color(0xFF9BA3B3)
 
 // Accent blu (modalità fredde) / arancio (Riscalda)

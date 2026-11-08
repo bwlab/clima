@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import it.bwlab.clima.data.ThemePreferences
@@ -21,9 +22,11 @@ class MainActivity : AppCompatActivity() {
             ViewModelProvider.AndroidViewModelFactory(application)
         )[AppViewModel::class.java]
         setContent {
-            ClimaTheme(theme = ThemePreferences.currentTheme.collectAsState().value) {
+            val theme by ThemePreferences.currentTheme.collectAsState()
+            ClimaTheme(theme = theme) {
                 Surface(
                     color = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.fillMaxSize()
                 ) {
                     ClimaNavHost(viewModel = viewModel)

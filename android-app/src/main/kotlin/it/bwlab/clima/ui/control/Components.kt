@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SettingsRemote
@@ -81,7 +82,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -152,6 +155,12 @@ fun ControlTopBar(
             )
         },
         actions = {
+            IconButton(onClick = onDevices) {
+                Icon(
+                    Icons.Filled.SettingsRemote,
+                    contentDescription = stringResource(R.string.cd_devices)
+                )
+            }
             IconButton(onClick = onSettings) {
                 Icon(
                     Icons.Filled.Settings,
@@ -162,6 +171,7 @@ fun ControlTopBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
             actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
@@ -171,6 +181,7 @@ fun ControlTopBar(
 @Composable
 fun CompactTopBar(
     state: ClimateState?,
+    usesFahrenheit: Boolean,
     onPower: (Boolean) -> Unit,
     onBack: () -> Unit,
     onDevices: () -> Unit,
@@ -220,7 +231,7 @@ fun CompactTopBar(
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = compactTemp(state?.setTemCelsius()),
+                    text = compactTemp(state?.setTemCelsius(), usesFahrenheit),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White
                 )
@@ -245,7 +256,9 @@ fun CompactTopBar(
     }
 }
 
-private fun compactTemp(tempC: Int?): String = tempC?.toString() ?: "—"
+@Composable
+private fun compactTemp(tempC: Int?, usesFahrenheit: Boolean): String =
+    tempC?.let { Formatters.temperatureWithUnit(it, usesFahrenheit) } ?: "—"
 
 @Composable
 private fun compactMode(mode: Mode?): String = when (mode) {
@@ -268,7 +281,8 @@ fun modeGradient(mode: Mode?, powered: Boolean): Brush = when {
 @Composable
 fun MainCard(
     ui: ControlViewModel.UiState,
-    vm: ControlViewModel
+    vm: ControlViewModel,
+    usesFahrenheit: Boolean
 ) {
     val state = ui.state
     val powered = state?.pow ?: false
@@ -291,9 +305,12 @@ fun MainCard(
             TemperatureDial(
                 tempC = ui.displayedTemp,
                 roomC = state?.temSenCorrected(),
+                usesFahrenheit = usesFahrenheit,
                 powered = powered,
                 connecting = ui.connecting,
-                onDial = { vm.dialTemperature(it) }
+                onDial = { vm.dialTemperature(it) },
+                onDecrease = { vm.changeTemperature(-1) },
+                onIncrease = { vm.changeTemperature(1) }
             )
 
             Spacer(Modifier.height(16.dp))
@@ -402,14 +419,18 @@ private const val TEMP_MAX = 30
 fun TemperatureDial(
     tempC: Int?,
     roomC: Int?,
+    usesFahrenheit: Boolean,
     powered: Boolean,
     connecting: Boolean,
-    onDial: (Int) -> Unit
+    onDial: (Int) -> Unit,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
 ) {
-    val contentTemp = stringResource(
-        R.string.a11y_temperature,
-        tempC?.toString() ?: "—"
-    )
+    val displayedValue = tempC?.let { Formatters.temperature(it, usesFahrenheit) } ?: "—"
+    val contentTemp = stringResource(R.string.a11y_temperature, displayedValue)
+    val decreaseLabel = stringResource(R.string.cd_temperature_decrease)
+    val increaseLabel = stringResource(R.string.cd_temperature_increase)
+    val controlsEnabled = powered && !connecting && tempC != null
     val dim = (if (powered) 1f else 0.35f) * (if (connecting) 0.6f else 1f)
 
     Column(
@@ -423,21 +444,71 @@ fun TemperatureDial(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .pointerInput(powered) {
-                    if (powered) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val pos = change.position
-                            val center = Offset(size.width / 2f, size.height / 2f)
-                            val angle = angleFrom(center, pos)
-                            val t = TEMP_MIN + ((angle - DIAL_START + 360f) % 360f) /
-                                DIAL_SWEEP * (TEMP_MAX - TEMP_MIN)
-                            onDial(t.toInt().coerceIn(TEMP_MIN, TEMP_MAX))
+        ) {
+            // Pulsanti − / + ai lati del quadrante (mockup 01)
+            IconButton(
+                onClick = onDecrease,
+                enabled = controlsEnabled,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 4.dp)
+                    .size(48.dp)
+                    .background(Color.White.copy(alpha = 0.18f), CircleShape)
+            ) {
+                Icon(
+                    Icons.Filled.Remove,
+                    contentDescription = decreaseLabel,
+                    tint = Color.White
+                )
+            }
+            IconButton(
+                onClick = onIncrease,
+                enabled = controlsEnabled,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp)
+                    .size(48.dp)
+                    .background(Color.White.copy(alpha = 0.18f), CircleShape)
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = increaseLabel,
+                    tint = Color.White
+                )
+            }
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 52.dp)
+                    .pointerInput(controlsEnabled) {
+                        if (controlsEnabled) {
+                            detectDragGestures { change, _ ->
+                                change.consume()
+                                val pos = change.position
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                val angle = angleFrom(center, pos)
+                                val t = TEMP_MIN + ((angle - DIAL_START + 360f) % 360f) /
+                                    DIAL_SWEEP * (TEMP_MAX - TEMP_MIN)
+                                onDial(t.toInt().coerceIn(TEMP_MIN, TEMP_MAX))
+                            }
                         }
                     }
-                }
-                .semantics { contentDescription = contentTemp }
-        ) {
+                    .semantics {
+                        contentDescription = contentTemp
+                        customActions = listOf(
+                            CustomAccessibilityAction(decreaseLabel) {
+                                if (controlsEnabled) onDecrease()
+                                controlsEnabled
+                            },
+                            CustomAccessibilityAction(increaseLabel) {
+                                if (controlsEnabled) onIncrease()
+                                controlsEnabled
+                            }
+                        )
+                    }
+            ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val stroke = 26.dp.toPx()
                 val padding = stroke / 2 + 4.dp.toPx()
@@ -509,12 +580,14 @@ fun TemperatureDial(
                 )
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
-                        text = (tempC?.toString() ?: "—"),
+                        text = displayedValue,
                         style = MaterialTheme.typography.displayLarge,
                         color = Color.White
                     )
                     Text(
-                        text = "°C",
+                        text = stringResource(
+                            if (usesFahrenheit) R.string.unit_fahrenheit else R.string.unit_celsius
+                        ),
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.White.copy(alpha = 0.9f),
                         modifier = Modifier.padding(top = 18.dp)
@@ -537,7 +610,7 @@ fun TemperatureDial(
                                 Icons.Outlined.WbSunny,
                                 contentDescription = stringResource(
                                     R.string.a11y_room_temperature,
-                                    roomC.toString()
+                                    Formatters.temperature(roomC, usesFahrenheit)
                                 ),
                                 tint = Color.White.copy(alpha = 0.9f),
                                 modifier = Modifier.size(14.dp)
@@ -545,7 +618,7 @@ fun TemperatureDial(
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = stringResource(R.string.label_room) + " " +
-                                    roomC.toString() + " °C",
+                                    Formatters.temperatureWithUnit(roomC, usesFahrenheit),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color.White
                             )
@@ -553,7 +626,8 @@ fun TemperatureDial(
                     }
                 }
             }
-        }
+            } // Box dial canvas+testo
+        } // Box dial + −/+
 
         // scala min/max
         Row(
@@ -563,12 +637,12 @@ fun TemperatureDial(
                 .padding(horizontal = 28.dp)
         ) {
             Text(
-                text = TEMP_MIN.toString(),
+                text = Formatters.temperature(TEMP_MIN, usesFahrenheit),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.8f)
             )
             Text(
-                text = TEMP_MAX.toString(),
+                text = Formatters.temperature(TEMP_MAX, usesFahrenheit),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.8f)
             )
@@ -599,8 +673,8 @@ fun StatusChips(connected: Boolean, connecting: Boolean, vpn: Boolean) {
                 else -> stringResource(R.string.status_unreachable)
             },
             color = when {
-                connected -> Color(0xFF2E9E5B)
                 connecting -> Color(0xFF9AA3B2)
+                connected -> Color(0xFF2E9E5B)
                 else -> Color(0xFFE5484D)
             }
         )
@@ -661,7 +735,7 @@ fun ModeGrid(current: Mode?, dimmed: Boolean, onSelect: (Mode) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (dimmed) 0.45f else 1f)
+            .alpha(if (dimmed) 0.72f else 1f)
     ) {
         grid.forEachIndexed { index, (mode, labelRes) ->
             val selected = mode == accentOwner
@@ -721,7 +795,7 @@ fun FanSelector(current: FanSpeed?, dimmed: Boolean, onSelect: (FanSpeed) -> Uni
         horizontalArrangement = Arrangement.spacedBy(7.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (dimmed) 0.45f else 1f)
+            .alpha(if (dimmed) 0.72f else 1f)
     ) {
         // tile "Auto"
         SegmentTile(
@@ -837,7 +911,7 @@ fun FeatureChips(ui: ControlViewModel.UiState, vm: ControlViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(if (ui.state?.pow == false) 0.45f else 1f)
+                    .alpha(if (ui.state?.pow == false) 0.72f else 1f)
             ) {
                 chunk.forEach { f ->
                     val accent = if (ui.state?.mode == Mode.HEAT) {
@@ -862,7 +936,9 @@ fun FeatureChips(ui: ControlViewModel.UiState, vm: ControlViewModel) {
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             selectedContainerColor = accent,
                             selectedLabelColor = Color.White,
-                            labelColor = MaterialTheme.colorScheme.onSurface
+                            selectedLeadingIconColor = Color.White,
+                            labelColor = MaterialTheme.colorScheme.onSurface,
+                            iconColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.weight(1f)
                     )

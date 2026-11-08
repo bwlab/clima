@@ -66,14 +66,14 @@ private fun endonym(code: String): String {
 
 /** Codice lingua -> nome tradotto nella lingua corrente dell'app */
 private fun exonym(code: String): String {
-    val loc = Locale.getDefault()
-    return loc.getDisplayLanguage(Locale.forLanguageTag(code)).lowercase(loc)
-        .replaceFirstChar { it.uppercase(loc) }
+    val current = Locale.getDefault()
+    return Locale.forLanguageTag(code).getDisplayLanguage(current).lowercase(current)
+        .replaceFirstChar { it.uppercase(current) }
 }
 
 /** Le lingue supportate dall'app (matcha locales_config.xml). */
 val SUPPORTED_LANGUAGES: List<String> = listOf(
-    "it", "fr", "de", "es", "pt", "nl", "da", "sv", "fi", "nb", "is",
+    "en", "it", "fr", "de", "es", "pt", "nl", "da", "sv", "fi", "nb", "is",
     "pl", "cs", "sk", "hu", "ro", "lt", "lv", "et", "ga", "mt", "hr",
     "sl", "sr", "bs", "sq", "mk", "bg", "el", "uk", "ca"
 )
@@ -119,7 +119,10 @@ fun SettingsScreen(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -226,14 +229,11 @@ private fun localeKeyCurrent(): String? {
 
 @Composable
 private fun currentLanguageEndonymSafe(): String =
-    localeKeyCurrent()?.let { endonym(it) } ?: Locale.getDefault().displayLanguage
+    localeKeyCurrent()?.let { endonym(it) } ?: stringResource(R.string.language_system_default)
 
 @Composable
-private fun currentLanguageExonymSafe(): String {
-    // quando la lingua per-app è impostata, il nome tradotto coincide con l'endonimo
-    val key = localeKeyCurrent() ?: return stringResource(R.string.language_system_default)
-    return endonym(key)
-}
+private fun currentLanguageExonymSafe(): String =
+    endonym(localeKeyCurrent() ?: Locale.getDefault().language)
 
 @Composable
 private fun SettingCard(content: @Composable () -> Unit) {
@@ -288,8 +288,8 @@ private fun UnitsToggle(usesF: Boolean, onChange: (Boolean) -> Unit) {
         // Segmentato a due opzioni: °C / °F
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                UnitPill(label = "°C", active = !usesF) { onChange(false) }
-                UnitPill(label = "°F", active = usesF) { onChange(true) }
+                UnitPill(label = stringResource(R.string.unit_celsius), active = !usesF) { onChange(false) }
+                UnitPill(label = stringResource(R.string.unit_fahrenheit), active = usesF) { onChange(true) }
             }
         }
     }

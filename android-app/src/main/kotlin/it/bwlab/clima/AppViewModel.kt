@@ -12,6 +12,7 @@ import it.bwlab.clima.data.TimerScheduler
 import it.bwlab.clima.ui.theme.ThemeMode
 import it.bwlab.gree.core.DeviceInfo
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     val repository = DeviceRepository(application)
+    val initialDeviceId: String? = repository.saved.value.firstOrNull()?.id
 
     val savedDevices get() = repository.saved
     val foundDevices get() = repository.found
@@ -29,27 +31,44 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Message di cortesia per la schermata Climatizzatori (chiave di risorsa). */
     val scanMessage = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    private val _scanning = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val scanning = _scanning.asStateFlow()
+    private val _deviceStates = kotlinx.coroutines.flow.MutableStateFlow<Map<String, it.bwlab.gree.core.ClimateState>>(emptyMap())
+    val deviceStates = _deviceStates.asStateFlow()
 
     init {
         // Ponte DataStore -> tema applicato
         viewModelScope.launch {
             prefs.theme.collect { ThemePreferences.currentTheme.value = it }
         }
+        refreshStatuses()
     }
 
     fun scan() {
+        if (_scanning.value) return
         scanMessage.value = null
+        _scanning.value = true
         viewModelScope.launch {
             try {
                 val found = repository.scan()
-                if (found.isEmpty()) {
-                    scanMessage.value = "scan_empty"
-                } else {
-                    scanMessage.value = null
-                }
+                scanMessage.value = if (found.isEmpty()) "scan_empty" else null
+                refreshStatuses()
             } catch (e: Throwable) {
                 scanMessage.value = "scan_failed"
+            } finally {
+                _scanning.value = false
             }
+        }
+    }
+
+    /** Aggiorna automaticamente stato e raggiungibilità delle unità salvate. */
+    fun refreshStatuses() {
+        viewModelScope.launch {
+            val updated = mutableMapOf<String, it.bwlab.gree.core.ClimateState>()
+            savedDevices.value.forEach { device ->
+                repository.ping(device)?.let { updated[device.mac] = it }
+            }
+            _deviceStates.value = updated
         }
     }
 

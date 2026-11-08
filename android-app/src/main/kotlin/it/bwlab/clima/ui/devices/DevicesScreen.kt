@@ -83,15 +83,20 @@ fun DevicesScreen(
     val found by app.foundDevices.collectAsState()
     val unreachable by app.unreachable.collectAsState()
     val scanMessage by app.scanMessage.collectAsState()
+    val deviceStates by app.deviceStates.collectAsState()
+    val scanBusy by app.scanning.collectAsState()
+    val usesF by app.prefs.usesFahrenheit.collectAsState(initial = false)
 
-    var scanning by remember { mutableStateOf(false) }
-    var scanBusy by remember { mutableStateOf(false) }
     var menuDevice by remember { mutableStateOf<SavedDevice?>(null) }
     var renameDevice by remember { mutableStateOf<SavedDevice?>(null) }
     var deleteDevice by remember { mutableStateOf<SavedDevice?>(null) }
     var manualIp by remember { mutableStateOf("") }
     var manualError by remember { mutableStateOf(false) }
     var manualPendingIp by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(saved.isEmpty()) {
+        if (saved.isEmpty()) app.scan()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -116,7 +121,7 @@ fun DevicesScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { app.scan(); scanning = true }) {
+                    IconButton(onClick = app::scan, enabled = !scanBusy) {
                         Icon(
                             Icons.Filled.Refresh,
                             contentDescription = stringResource(R.string.cd_refresh_scan)
@@ -124,7 +129,10 @@ fun DevicesScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -154,7 +162,9 @@ fun DevicesScreen(
                                 saved.forEachIndexed { index, device ->
                                     SavedRow(
                                         device = device,
+                                        state = deviceStates[device.mac],
                                         unreachable = unreachable.contains(device.mac),
+                                        usesFahrenheit = usesF,
                                         onClick = { onOpen(device.id) },
                                         onLongClick = {
                                             menuDevice = device
@@ -216,8 +226,10 @@ fun DevicesScreen(
                         ) {
                             Text(
                                 text = stringResource(
-                                    if (scanMessage == "scan_empty") R.string.scan_empty
-                                    else R.string.scan_running
+                                    when (scanMessage) {
+                                        "scan_empty" -> R.string.scan_empty
+                                        else -> R.string.devices_empty
+                                    }
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -252,6 +264,22 @@ fun DevicesScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            OutlinedButton(
+                onClick = {
+                    if (isValidIp(manualIp)) {
+                        manualPendingIp = manualIp
+                        manualIp = ""
+                    } else {
+                        manualError = true
+                    }
+                },
+                enabled = manualIp.isNotBlank(),
+                shape = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.action_add_manual))
+            }
+
             Spacer(Modifier.height(10.dp))
 
             // Nota informativa sulla VPN
@@ -279,17 +307,7 @@ fun DevicesScreen(
 
             // Pulsante principale "Cerca in rete"
             Button(
-                onClick = {
-                    if (manualIp.isNotBlank() && !isValidIp(manualIp)) {
-                        manualError = true
-                    } else if (manualIp.isNotBlank() && isValidIp(manualIp)) {
-                        manualPendingIp = manualIp
-                        manualIp = ""
-                    } else {
-                        app.scan()
-                        scanBusy = true
-                    }
-                },
+                onClick = app::scan,
                 enabled = !scanBusy,
                 shape = RoundedCornerShape(50),
                 modifier = Modifier
@@ -405,7 +423,9 @@ fun DevicesScreen(
 @Composable
 private fun SavedRow(
     device: SavedDevice,
+    state: it.bwlab.gree.core.ClimateState?,
     unreachable: Boolean,
+    usesFahrenheit: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -438,16 +458,33 @@ private fun SavedRow(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = device.ip,
+                text = when {
+                    unreachable -> stringResource(R.string.device_unreachable)
+                    state == null -> device.ip
+                    state.pow -> stringResource(R.string.device_state_on, device.ip) +
+                        " · " + it.bwlab.clima.util.Formatters.temperatureWithUnit(
+                            state.setTemCelsius(), usesFahrenheit
+                        )
+                    else -> stringResource(R.string.device_state_off, device.ip) +
+                        " · " + it.bwlab.clima.util.Formatters.temperatureWithUnit(
+                            state.setTemCelsius(), usesFahrenheit
+                        )
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Box(
             Modifier
                 .size(9.dp)
                 .background(
-                    if (unreachable) Color(0xFFE5484D) else Color(0xFF2E9E5B),
+                    when {
+                        unreachable -> Color(0xFFE5484D)
+                        state != null -> Color(0xFF2E9E5B)
+                        else -> Color(0xFF9AA3B2)
+                    },
                     CircleShape
                 )
         )

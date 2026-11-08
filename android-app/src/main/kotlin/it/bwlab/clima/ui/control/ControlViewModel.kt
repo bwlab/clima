@@ -27,6 +27,7 @@ class ControlViewModel(
     private val deviceId: String
 ) : ViewModel() {
 
+    // Chiamare ControlScreen solo se il device è nei salvati (guard in ClimaNavHost).
     private val device: SavedDevice =
         repository.saved.value.first { it.id == deviceId }
 
